@@ -9,14 +9,16 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
 
-    // --- FIX: Decode the private key from Base64 ---
-    // This is a more reliable way to handle multi-line secrets in Vercel.
-    const decodedPrivateKey = Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, 'base64').toString('utf-8');
+    // --- FINAL FIX ---
+    // We are going back to the standard method of handling the private key.
+    // Vercel stores the key as a single line with '\\n' for line breaks.
+    // This .replace() call correctly converts it back to the multi-line format that Google needs.
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: decodedPrivateKey, // Use the decoded key
+        private_key: privateKey, // Use the corrected key
       },
       scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
@@ -38,7 +40,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error in API handler:', error);
-    // Provide more detailed error logging for debugging
     res.status(500).json({ success: false, message: `Server Error: ${error.message}`, details: error.stack });
   }
 }
