@@ -4,7 +4,7 @@ import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, 
 
 export default function App() {
   // --- IMPORTANT ---
-  // Paste the Web app URL from your Google Apps Script deployment here.
+  // Your coworker will need to paste THEIR deployed Apps Script URL here.
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF4Pohrl8G6yZOcDiZ7ZyhvhzIFQrjmDeBDmIfLBJvBI5XxZyPPM99TEGLApeJGf95uQ/exec';
 
   const [eventType, setEventType] = useState('school');
@@ -17,7 +17,7 @@ export default function App() {
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
       schoolEventType: 'Holiday',
-      personalEventType: 'Training',
+      personalEventType: 'Training', // Changed default to Training
       calendarDisplay: 'span',
       taskDays: 7,
     }
@@ -32,7 +32,6 @@ export default function App() {
     setSubmissionStatus('loading');
     const payload = { ...data, eventType, isMultiDay, isAllDay, createTask, isSchoolOpen };
 
-    // This is a special function to handle the redirect that Apps Script forces.
     const submitToGoogleScript = (data) => {
       const iframe = document.createElement('iframe');
       iframe.name = 'hidden_iframe';
@@ -53,7 +52,6 @@ export default function App() {
       document.body.appendChild(form);
       form.submit();
 
-      // We assume success because we can't get a response back directly.
       setTimeout(() => {
         document.body.removeChild(iframe);
         document.body.removeChild(form);
@@ -64,7 +62,7 @@ export default function App() {
         setIsAllDay(true);
         setCreateTask(false);
         setIsSchoolOpen(false);
-      }, 2000); // Wait 2 seconds before showing success
+      }, 2000);
     };
 
     try {
@@ -86,18 +84,14 @@ export default function App() {
         .form-label { color: #d1d5db; font-weight: 500; display: flex; align-items: center; margin-bottom: 0.5rem; }
         .form-label svg { width: 1.125rem; height: 1.125rem; color: #9ca3af; margin-right: 0.5rem; }
         .form-input, .form-select, .form-textarea { color: #ffffff; background-color: #374151; width: 100%; padding: 0.75rem; border: 1px solid #4b5563; border-radius: 0.5rem; }
-        .form-input::placeholder, .form-textarea::placeholder { color: #9ca3af; }
-        .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #6366f1; outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); }
         .form-checkbox { height: 1.25rem; width: 1.25rem; border-radius: 0.25rem; border-color: #4b5563; background-color: #374151; color: #6366f1; }
         .error-message { color: #f87171; font-size: 0.875rem; margin-top: 0.25rem; }
-        .submit-button { width: 100%; background-color: #4f46e5; color: #ffffff; font-weight: 600; padding: 0.75rem; border-radius: 0.5rem; transition: background-color 0.2s; }
-        .submit-button:hover { background-color: #4338ca; }
+        .submit-button { width: 100%; background-color: #4f46e5; color: #ffffff; font-weight: 600; padding: 0.75rem; border-radius: 0.5rem; }
         .submit-button:disabled { background-color: #3730a3; cursor: not-allowed; }
         .message-box { margin-bottom: 1rem; padding: 1rem; text-align: center; font-weight: 500; border-radius: 0.5rem; }
         .message-box.success { background-color: #14532d; color: #a7f3d0; }
         .message-box.error { background-color: #7f1d1d; color: #fecaca; }
         .radio-label { display: flex; align-items: center; color: #d1d5db; }
-        .radio-label input { margin-right: 0.5rem; }
       `}</style>
       <div className="form-container">
         <div className="card">
@@ -107,7 +101,7 @@ export default function App() {
           {submissionStatus === 'error' && <div className="message-box error">❌ Submission failed. Please try again.</div>}
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Form fields... */}
+            {/* Event Category */}
             <div className="form-group">
               <label htmlFor="eventType" className="form-label"><ListChecks /> Event Category</label>
               <select id="eventType" value={eventType} onChange={(e) => setEventType(e.target.value)} className="form-select">
@@ -115,11 +109,17 @@ export default function App() {
                 <option value="personal">Personal</option>
               </select>
             </div>
+
+            {/* Conditional Options */}
             {eventType === 'school' ? (
               <div className="form-group p-4 bg-gray-900/50 rounded-lg">
                 <label htmlFor="schoolEventType" className="form-label"><Building /> School Event Type</label>
                 <select id="schoolEventType" {...register('schoolEventType')} className="form-select mb-4">
-                  <option>Holiday</option><option>PTC</option><option>In-Service Day</option><option>Activity</option><option>Other</option>
+                  <option>Holiday</option>
+                  <option>PTC</option>
+                  <option>In-Service Day</option>
+                  <option>Activity</option>
+                  <option>Other</option>
                 </select>
                 <div className="flex items-center">
                   <input id="isSchoolOpen" type="checkbox" checked={isSchoolOpen} onChange={(e) => setIsSchoolOpen(e.target.checked)} className="form-checkbox" />
@@ -129,7 +129,9 @@ export default function App() {
                   <div className="mt-4">
                     <label htmlFor="schoolDayType" className="form-label">School Day Type</label>
                     <select id="schoolDayType" {...register('schoolDayType')} className="form-select">
-                      <option>Half Day</option><option>Normal Class</option><option>No Class</option>
+                      <option>Half Day</option>
+                      <option>Normal Class</option>
+                      <option>No Class</option>
                     </select>
                   </div>
                 )}
@@ -138,10 +140,18 @@ export default function App() {
               <div className="form-group p-4 bg-gray-900/50 rounded-lg">
                 <label htmlFor="personalEventType" className="form-label"><User /> Personal Event Type</label>
                 <select id="personalEventType" {...register('personalEventType')} className="form-select">
-                  <option>Training</option><option>Vacation</option><option>Other</option>
+                  <option>Training</option>
+                  <option>Vacation</option>
+                  <option>Doctor</option>
+                  <option>Flight</option>
+                  <option>House</option>
+                  <option>Car</option>
+                  <option>Other</option>
                 </select>
               </div>
             )}
+
+            {/* Event Name & Description */}
             <div className="form-group">
               <label htmlFor="eventName" className="form-label"><Tag /> Event Name / Title</label>
               <input type="text" id="eventName" {...register('eventName', { required: 'Event name is required' })} className="form-input" placeholder="e.g., Christmas Break" />
@@ -149,8 +159,10 @@ export default function App() {
             </div>
             <div className="form-group">
               <label htmlFor="longDescription" className="form-label"><FileText /> Detailed Description</label>
-              <textarea id="longDescription" {...register('longDescription')} rows="4" className="form-textarea" placeholder="Add any specific details, links, or notes..."></textarea>
+              <textarea id="longDescription" {...register('longDescription')} rows="4" className="form-textarea" placeholder="Add any specific details..."></textarea>
             </div>
+
+            {/* Date & Time Selection */}
             <div className="form-group">
                 <div className="flex items-center mb-2">
                     <input id="isMultiDay" type="checkbox" checked={isMultiDay} onChange={(e) => setIsMultiDay(e.target.checked)} className="form-checkbox" />
@@ -188,17 +200,19 @@ export default function App() {
                     </div>
                 )}
             </div>
-            {isMultiDay && (
-                <div className="form-group">
-                    <label className="form-label"><Zap /> Calendar Display</label>
-                    <div className="flex gap-4 mt-2">
-                        <label className="radio-label"><input type="radio" value="span" {...register('calendarDisplay')} />Span across all days</label>
-                        <label className="radio-label"><input type="radio" value="start_end" {...register('calendarDisplay')} />Show start & end only</label>
+
+            {/* Calendar Display & Task Options */}
+            <div className="space-y-4 pt-4 border-t border-gray-700">
+                {isMultiDay && (
+                    <div className="form-group">
+                        <label className="form-label"><Zap /> Calendar Display</label>
+                        <div className="flex gap-4 mt-2">
+                            <label className="radio-label"><input type="radio" value="span" {...register('calendarDisplay')} className="form-checkbox mr-2" />Span across all days</label>
+                            <label className="radio-label"><input type="radio" value="start_end" {...register('calendarDisplay')} className="form-checkbox mr-2" />Show start & end only</label>
+                        </div>
                     </div>
-                </div>
-            )}
-            <div className="form-group">
-                <div className="flex items-center mb-2">
+                )}
+                <div className="flex items-center">
                     <input id="createTask" type="checkbox" checked={createTask} onChange={(e) => setCreateTask(e.target.checked)} className="form-checkbox" />
                     <label htmlFor="createTask" className="ml-2 text-sm">Create a preparation task?</label>
                 </div>
@@ -209,8 +223,9 @@ export default function App() {
                     </div>
                 )}
             </div>
+
             <button type="submit" className="submit-button" disabled={submissionStatus === 'loading'}>
-                {submissionStatus === 'loading' ? 'Submitting...' : 'Log Event'}
+              {submissionStatus === 'loading' ? 'Submitting...' : 'Log Event'}
             </button>
           </form>
         </div>
