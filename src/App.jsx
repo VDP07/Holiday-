@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-// FIX: Added 'Tag' to the import list
 import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, Tag, User, Zap } from 'lucide-react';
 
 export default function App() {
-  // State for UI logic
+  // --- IMPORTANT ---
+  // Paste the Web app URL from your Google Apps Script deployment here.
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF4Pohrl8G6yZOcDiZ7ZyhvhzIFQrjmDeBDmIfLBJvBI5XxZyPPM99TEGLApeJGf95uQ/exec';
+
   const [eventType, setEventType] = useState('school');
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [isAllDay, setIsAllDay] = useState(true);
   const [createTask, setCreateTask] = useState(false);
   const [isSchoolOpen, setIsSchoolOpen] = useState(false);
-  
-  // State for submission status
   const [submissionStatus, setSubmissionStatus] = useState(null);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
@@ -23,47 +23,52 @@ export default function App() {
     }
   });
 
-  // Apply dark theme on component mount
   useEffect(() => {
     document.body.classList.add('dark-theme');
-    return () => {
-      document.body.classList.remove('dark-theme');
-    };
+    return () => document.body.classList.remove('dark-theme');
   }, []);
 
   const onSubmit = async (data) => {
     setSubmissionStatus('loading');
+    const payload = { ...data, eventType, isMultiDay, isAllDay, createTask, isSchoolOpen };
 
-    const payload = {
-      ...data,
-      eventType,
-      isMultiDay,
-      isAllDay,
-      createTask,
-      isSchoolOpen,
+    // This is a special function to handle the redirect that Apps Script forces.
+    const submitToGoogleScript = (data) => {
+      const iframe = document.createElement('iframe');
+      iframe.name = 'hidden_iframe';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = SCRIPT_URL;
+      form.target = 'hidden_iframe';
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'data';
+      input.value = JSON.stringify(data);
+      form.appendChild(input);
+      
+      document.body.appendChild(form);
+      form.submit();
+
+      // We assume success because we can't get a response back directly.
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        document.body.removeChild(form);
+        setSubmissionStatus('success');
+        reset();
+        setEventType('school');
+        setIsMultiDay(false);
+        setIsAllDay(true);
+        setCreateTask(false);
+        setIsSchoolOpen(false);
+      }, 2000); // Wait 2 seconds before showing success
     };
 
     try {
-      const response = await fetch('/api/handler', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'An unknown error occurred');
-      }
-
-      setSubmissionStatus('success');
-      reset(); 
-      setEventType('school');
-      setIsMultiDay(false);
-      setIsAllDay(true);
-      setCreateTask(false);
-      setIsSchoolOpen(false);
-
+      submitToGoogleScript(payload);
     } catch (error) {
       console.error('Submission failed:', error);
       setSubmissionStatus('error');
@@ -102,7 +107,7 @@ export default function App() {
           {submissionStatus === 'error' && <div className="message-box error">❌ Submission failed. Please try again.</div>}
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Event Category */}
+            {/* Form fields... */}
             <div className="form-group">
               <label htmlFor="eventType" className="form-label"><ListChecks /> Event Category</label>
               <select id="eventType" value={eventType} onChange={(e) => setEventType(e.target.value)} className="form-select">
@@ -110,8 +115,6 @@ export default function App() {
                 <option value="personal">Personal</option>
               </select>
             </div>
-
-            {/* Conditional Options */}
             {eventType === 'school' ? (
               <div className="form-group p-4 bg-gray-900/50 rounded-lg">
                 <label htmlFor="schoolEventType" className="form-label"><Building /> School Event Type</label>
@@ -139,8 +142,6 @@ export default function App() {
                 </select>
               </div>
             )}
-
-            {/* Event Name & Description */}
             <div className="form-group">
               <label htmlFor="eventName" className="form-label"><Tag /> Event Name / Title</label>
               <input type="text" id="eventName" {...register('eventName', { required: 'Event name is required' })} className="form-input" placeholder="e.g., Christmas Break" />
@@ -150,8 +151,6 @@ export default function App() {
               <label htmlFor="longDescription" className="form-label"><FileText /> Detailed Description</label>
               <textarea id="longDescription" {...register('longDescription')} rows="4" className="form-textarea" placeholder="Add any specific details, links, or notes..."></textarea>
             </div>
-
-            {/* Date Selection */}
             <div className="form-group">
                 <div className="flex items-center mb-2">
                     <input id="isMultiDay" type="checkbox" checked={isMultiDay} onChange={(e) => setIsMultiDay(e.target.checked)} className="form-checkbox" />
@@ -171,8 +170,6 @@ export default function App() {
                     )}
                 </div>
             </div>
-
-            {/* Time Selection */}
             <div className="form-group">
                 <div className="flex items-center mb-2">
                     <input id="isAllDay" type="checkbox" checked={isAllDay} onChange={(e) => setIsAllDay(e.target.checked)} className="form-checkbox" />
@@ -191,8 +188,6 @@ export default function App() {
                     </div>
                 )}
             </div>
-
-            {/* Multi-Day Display Options */}
             {isMultiDay && (
                 <div className="form-group">
                     <label className="form-label"><Zap /> Calendar Display</label>
@@ -202,8 +197,6 @@ export default function App() {
                     </div>
                 </div>
             )}
-
-            {/* Task Creation */}
             <div className="form-group">
                 <div className="flex items-center mb-2">
                     <input id="createTask" type="checkbox" checked={createTask} onChange={(e) => setCreateTask(e.target.checked)} className="form-checkbox" />
@@ -216,7 +209,6 @@ export default function App() {
                     </div>
                 )}
             </div>
-
             <button type="submit" className="submit-button" disabled={submissionStatus === 'loading'}>
                 {submissionStatus === 'loading' ? 'Submitting...' : 'Log Event'}
             </button>
