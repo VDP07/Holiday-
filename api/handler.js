@@ -2,11 +2,6 @@ import { google } from 'googleapis';
 
 // This function is your main API endpoint.
 export default async function handler(req, res) {
-  // --- TEMPORARY DEBUGGING STEP ---
-  // This will print all environment variables to the Vercel logs.
-  console.log("Vercel Environment Variables:", process.env);
-  // --- END DEBUGGING STEP ---
-
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Only POST requests are allowed' });
   }
@@ -14,10 +9,14 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
 
+    // --- FIX: Decode the private key from Base64 ---
+    // This is a more reliable way to handle multi-line secrets in Vercel.
+    const decodedPrivateKey = Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, 'base64').toString('utf-8');
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        private_key: decodedPrivateKey, // Use the decoded key
       },
       scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
@@ -39,7 +38,8 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error in API handler:', error);
-    res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
+    // Provide more detailed error logging for debugging
+    res.status(500).json({ success: false, message: `Server Error: ${error.message}`, details: error.stack });
   }
 }
 
