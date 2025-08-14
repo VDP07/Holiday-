@@ -2,24 +2,30 @@ import { google } from 'googleapis';
 
 // This function is your main API endpoint.
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Only POST requests are allowed' });
+  // --- DETAILED ERROR CHECKING ---
+  // First, check if all required environment variables are present.
+  if (!process.env.GOOGLE_CREDENTIALS_JSON) {
+    console.error("FATAL: GOOGLE_CREDENTIALS_JSON is not set in Vercel.");
+    return res.status(500).json({ success: false, message: "Server configuration error: Missing credentials." });
   }
+  if (!process.env.GOOGLE_SHEET_ID) {
+    console.error("FATAL: GOOGLE_SHEET_ID is not set in Vercel.");
+    return res.status(500).json({ success: false, message: "Server configuration error: Missing Sheet ID." });
+  }
+  if (!process.env.GOOGLE_CALENDAR_ID) {
+    console.error("FATAL: GOOGLE_CALENDAR_ID is not set in Vercel.");
+    return res.status(500).json({ success: false, message: "Server configuration error: Missing Calendar ID." });
+  }
+  // --- END ERROR CHECKING ---
 
   try {
     const formData = req.body;
+    console.log("API Handler received form data:", formData);
 
-    // --- FINAL FIX ---
-    // We are going back to the standard method of handling the private key.
-    // Vercel stores the key as a single line with '\\n' for line breaks.
-    // This .replace() call correctly converts it back to the multi-line format that Google needs.
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
 
     const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: privateKey, // Use the corrected key
-      },
+      credentials,
       scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/calendar',
@@ -28,6 +34,7 @@ export default async function handler(req, res) {
     });
 
     const authClient = await auth.getClient();
+    console.log("Successfully authenticated with Google.");
     
     const sheets = google.sheets({ version: 'v4', auth: authClient });
     const calendar = google.calendar({ version: 'v3', auth: authClient });
@@ -36,17 +43,20 @@ export default async function handler(req, res) {
     await appendToSheet(sheets, formData);
     await createEventsAndTasks(calendar, tasks, formData);
 
+    console.log("Successfully completed all Google API operations.");
     res.status(200).json({ success: true, message: 'Event logged successfully!' });
 
   } catch (error) {
-    console.error('Error in API handler:', error);
-    res.status(500).json({ success: false, message: `Server Error: ${error.message}`, details: error.stack });
+    // This will now catch any error from Google and send it back to the form.
+    console.error('Error during Google API call:', error);
+    res.status(500).json({ success: false, message: `Google API Error: ${error.message}` });
   }
 }
 
 // --- HELPER FUNCTIONS ---
 
 async function appendToSheet(sheets, data) {
+  console.log("Attempting to write to Google Sheet...");
   const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
   const range = 'Sheet1!A1';
 
@@ -64,10 +74,12 @@ async function appendToSheet(sheets, data) {
     spreadsheetId: SPREADSHEET_ID, range, valueInputOption: 'USER_ENTERED',
     resource: { values: [rowData] },
   });
+  console.log("Successfully wrote to Google Sheet.");
 }
 
 async function createEventsAndTasks(calendar, tasks, data) {
   if (!data.startDate) return;
+  console.log("Attempting to create events and/or tasks...");
 
   const eventType = data.eventType === 'school' ? data.schoolEventType : data.personalEventType;
   const userEventName = data.eventName || 'Untitled Event';
@@ -89,6 +101,7 @@ async function createEventsAndTasks(calendar, tasks, data) {
       eventResource.end = { dateTime: new Date(`${end.toISOString().slice(0,10)}T${data.endTime || '10:00'}`).toISOString() };
     }
     await calendar.events.insert({ calendarId: process.env.GOOGLE_CALENDAR_ID, resource: eventResource });
+    console.log(`Created event: "${title}"`);
   };
 
   const startDate = new Date(data.startDate);
@@ -105,11 +118,13 @@ async function createEventsAndTasks(calendar, tasks, data) {
   }
 
   if (data.createTask) {
+    console.log("Attempting to create a task...");
     const taskDueDate = new Date(startDate);
     taskDueDate.setDate(taskDueDate.getDate() - parseInt(data.taskDays, 10));
     await tasks.tasks.insert({
       tasklist: '@default',
       resource: { title: finalTaskTitle, notes: fullDescription, due: taskDueDate.toISOString() },
     });
+    console.log(`Created task: "${finalTaskTitle}"`);
   }
 }
