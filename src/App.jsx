@@ -3,10 +3,7 @@ import { useForm } from 'react-hook-form';
 import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, User, Zap } from 'lucide-react';
 
 export default function App() {
-  // IMPORTANT: Replace this with the URL from your deployed Apps Script.
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF4Pohrl8G6yZOcDiZ7ZyhvhzIFQrjmDeBDmIfLBJvBI5XxZyPPM99TEGLApeJGf95uQ/exec';
-
-  // State for UI logic (what to show/hide)
+  // State for UI logic
   const [eventType, setEventType] = useState('school');
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [isAllDay, setIsAllDay] = useState(true);
@@ -14,7 +11,7 @@ export default function App() {
   const [isSchoolOpen, setIsSchoolOpen] = useState(false);
   
   // State for submission status
-  const [submissionStatus, setSubmissionStatus] = useState(null); // 'loading', 'success', 'error'
+  const [submissionStatus, setSubmissionStatus] = useState(null);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
@@ -25,14 +22,13 @@ export default function App() {
     }
   });
 
-  // This hook correctly applies the dark theme class to the main body tag.
+  // Apply dark theme on component mount
   useEffect(() => {
     document.body.classList.add('dark-theme');
-    // Optional: remove the class when the component is unmounted
     return () => {
       document.body.classList.remove('dark-theme');
     };
-  }, []); // The empty array ensures this effect runs only once.
+  }, []);
 
   const onSubmit = async (data) => {
     setSubmissionStatus('loading');
@@ -47,14 +43,18 @@ export default function App() {
     };
 
     try {
-      await fetch(SCRIPT_URL, {
+      // **FIXED**: This now points to your Vercel backend API, not an Apps Script URL.
+      const response = await fetch('/api/handler', {
         method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'An unknown error occurred');
+      }
 
       setSubmissionStatus('success');
       reset(); 
@@ -73,7 +73,6 @@ export default function App() {
   return (
     <>
       <style>{`
-        /* The selector is now simpler and more reliable */
         body.dark-theme { background-color: #111827; color: #d1d5db; font-family: 'Inter', sans-serif; }
         .form-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .card { background-color: #1f2937; border: 1px solid #374151; padding: 2.5rem; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); width: 100%; max-width: 48rem; }
@@ -103,6 +102,7 @@ export default function App() {
           {submissionStatus === 'error' && <div className="message-box error">❌ Submission failed. Please try again.</div>}
 
           <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Form fields... (code is identical to previous version, omitted for brevity) */}
             {/* Event Category */}
             <div className="form-group">
               <label htmlFor="eventType" className="form-label"><ListChecks /> Event Category</label>
