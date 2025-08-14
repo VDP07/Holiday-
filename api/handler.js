@@ -9,13 +9,16 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
 
-    // This is the standard, reliable method for handling the private key.
+    // --- FINAL FIX ---
+    // We are going back to the standard method of handling the private key.
+    // Vercel stores the key as a single line with '\\n' for line breaks.
+    // This .replace() call correctly converts it back to the multi-line format that Google needs.
     const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: privateKey,
+        private_key: privateKey, // Use the corrected key
       },
       scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
