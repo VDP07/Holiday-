@@ -9,16 +9,28 @@ export default async function handler(req, res) {
   try {
     const formData = req.body;
 
-    // --- FINAL FIX ---
-    // We are going back to the standard method of handling the private key.
-    // Vercel stores the key as a single line with '\\n' for line breaks.
-    // This .replace() call correctly converts it back to the multi-line format that Google needs.
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    // --- FINAL DIAGNOSTIC STEP ---
+    // We will log the exact credentials the server is attempting to use.
+    // This will show us if the private key format is correct.
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
+
+    if (!clientEmail || !privateKeyRaw) {
+        throw new Error("One or more Google credentials are not set in Vercel environment variables.");
+    }
+
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+
+    console.log("--- DIAGNOSTIC LOG ---");
+    console.log("Attempting to use Client Email:", clientEmail);
+    console.log("Formatted Private Key being used:", privateKey);
+    console.log("--- END DIAGNOSTIC LOG ---");
+    // --- END DIAGNOSTIC STEP ---
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: privateKey, // Use the corrected key
+        client_email: clientEmail,
+        private_key: privateKey,
       },
       scopes: [
         'https://www.googleapis.com/auth/spreadsheets',
