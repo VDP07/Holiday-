@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, User, Zap } from 'lucide-react';
+// FIX: Added 'Tag' to the import list
+import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, Tag, User, Zap } from 'lucide-react';
 
 export default function App() {
   // State for UI logic
@@ -43,7 +44,6 @@ export default function App() {
     };
 
     try {
-      // **FIXED**: This now points to your Vercel backend API, not an Apps Script URL.
       const response = await fetch('/api/handler', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,7 +102,6 @@ export default function App() {
           {submissionStatus === 'error' && <div className="message-box error">❌ Submission failed. Please try again.</div>}
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Form fields... (code is identical to previous version, omitted for brevity) */}
             {/* Event Category */}
             <div className="form-group">
               <label htmlFor="eventType" className="form-label"><ListChecks /> Event Category</label>
