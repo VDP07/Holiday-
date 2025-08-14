@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { BookUser, Building, Calendar, Clock, FileText, ListChecks, PlusCircle, User, Zap } from 'lucide-react';
 
@@ -25,10 +25,18 @@ export default function App() {
     }
   });
 
+  // This hook correctly applies the dark theme class to the main body tag.
+  useEffect(() => {
+    document.body.classList.add('dark-theme');
+    // Optional: remove the class when the component is unmounted
+    return () => {
+      document.body.classList.remove('dark-theme');
+    };
+  }, []); // The empty array ensures this effect runs only once.
+
   const onSubmit = async (data) => {
     setSubmissionStatus('loading');
 
-    // Combine UI state with form data
     const payload = {
       ...data,
       eventType,
@@ -39,9 +47,6 @@ export default function App() {
     };
 
     try {
-      // Sending data to your Google Apps Script
-      // 'no-cors' mode is used to prevent CORS errors with Apps Script,
-      // but it means we can't read the response from the script.
       await fetch(SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors', 
@@ -51,10 +56,8 @@ export default function App() {
         body: JSON.stringify(payload),
       });
 
-      // Since we can't read the response, we optimistically assume success.
       setSubmissionStatus('success');
-      reset(); // Reset form fields
-      // Reset UI state toggles
+      reset(); 
       setEventType('school');
       setIsMultiDay(false);
       setIsAllDay(true);
@@ -70,23 +73,27 @@ export default function App() {
   return (
     <>
       <style>{`
-        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        /* The selector is now simpler and more reliable */
+        body.dark-theme { background-color: #111827; color: #d1d5db; font-family: 'Inter', sans-serif; }
         .form-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .card { background-color: #ffffff; padding: 2.5rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); width: 100%; max-width: 48rem; }
-        .title { font-size: 2rem; font-weight: 700; text-align: center; color: #1f2937; margin-bottom: 2rem; }
+        .card { background-color: #1f2937; border: 1px solid #374151; padding: 2.5rem; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); width: 100%; max-width: 48rem; }
+        .title { font-size: 2rem; font-weight: 700; text-align: center; color: #ffffff; margin-bottom: 2rem; }
         .form-group { margin-bottom: 1.5rem; }
-        .form-label { color: #374151; font-weight: 500; display: flex; align-items: center; margin-bottom: 0.5rem; }
-        .form-label svg { width: 1.125rem; height: 1.125rem; color: #6b7280; margin-right: 0.5rem; }
-        .form-input, .form-select, .form-textarea { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; }
-        .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #4f46e5; outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5); }
-        .form-checkbox { height: 1.25rem; width: 1.25rem; border-radius: 0.25rem; border-color: #d1d5db; color: #4f46e5; }
-        .error-message { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
+        .form-label { color: #d1d5db; font-weight: 500; display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .form-label svg { width: 1.125rem; height: 1.125rem; color: #9ca3af; margin-right: 0.5rem; }
+        .form-input, .form-select, .form-textarea { color: #ffffff; background-color: #374151; width: 100%; padding: 0.75rem; border: 1px solid #4b5563; border-radius: 0.5rem; }
+        .form-input::placeholder, .form-textarea::placeholder { color: #9ca3af; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #6366f1; outline: 2px solid transparent; outline-offset: 2px; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); }
+        .form-checkbox { height: 1.25rem; width: 1.25rem; border-radius: 0.25rem; border-color: #4b5563; background-color: #374151; color: #6366f1; }
+        .error-message { color: #f87171; font-size: 0.875rem; margin-top: 0.25rem; }
         .submit-button { width: 100%; background-color: #4f46e5; color: #ffffff; font-weight: 600; padding: 0.75rem; border-radius: 0.5rem; transition: background-color 0.2s; }
         .submit-button:hover { background-color: #4338ca; }
-        .submit-button:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+        .submit-button:disabled { background-color: #3730a3; cursor: not-allowed; }
         .message-box { margin-bottom: 1rem; padding: 1rem; text-align: center; font-weight: 500; border-radius: 0.5rem; }
-        .message-box.success { background-color: #dcfce7; color: #166534; }
-        .message-box.error { background-color: #fee2e2; color: #991b1b; }
+        .message-box.success { background-color: #14532d; color: #a7f3d0; }
+        .message-box.error { background-color: #7f1d1d; color: #fecaca; }
+        .radio-label { display: flex; align-items: center; color: #d1d5db; }
+        .radio-label input { margin-right: 0.5rem; }
       `}</style>
       <div className="form-container">
         <div className="card">
@@ -107,7 +114,7 @@ export default function App() {
 
             {/* Conditional Options */}
             {eventType === 'school' ? (
-              <div className="form-group p-4 bg-gray-50 rounded-lg">
+              <div className="form-group p-4 bg-gray-900/50 rounded-lg">
                 <label htmlFor="schoolEventType" className="form-label"><Building /> School Event Type</label>
                 <select id="schoolEventType" {...register('schoolEventType')} className="form-select mb-4">
                   <option>Holiday</option><option>PTC</option><option>In-Service Day</option><option>Activity</option><option>Other</option>
@@ -126,7 +133,7 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div className="form-group p-4 bg-gray-50 rounded-lg">
+              <div className="form-group p-4 bg-gray-900/50 rounded-lg">
                 <label htmlFor="personalEventType" className="form-label"><User /> Personal Event Type</label>
                 <select id="personalEventType" {...register('personalEventType')} className="form-select">
                   <option>Training</option><option>Vacation</option><option>Other</option>
@@ -191,8 +198,8 @@ export default function App() {
                 <div className="form-group">
                     <label className="form-label"><Zap /> Calendar Display</label>
                     <div className="flex gap-4 mt-2">
-                        <label className="flex items-center"><input type="radio" value="span" {...register('calendarDisplay')} className="form-checkbox mr-2" />Span across all days</label>
-                        <label className="flex items-center"><input type="radio" value="start_end" {...register('calendarDisplay')} className="form-checkbox mr-2" />Show start & end only</label>
+                        <label className="radio-label"><input type="radio" value="span" {...register('calendarDisplay')} />Span across all days</label>
+                        <label className="radio-label"><input type="radio" value="start_end" {...register('calendarDisplay')} />Show start & end only</label>
                     </div>
                 </div>
             )}
@@ -220,4 +227,3 @@ export default function App() {
     </>
   );
 }
-
